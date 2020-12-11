@@ -128,5 +128,43 @@ def get_all_owners():
     all_owners = db.session.query(Owner).all()
     return jsonify(multiple_Owner_schema.dump(all_owners))
 
+@app.route("/client/authentication", methods=["POST"])
+def client_authentication():
+    if request.content_type != "application/json":
+        return "Error: Data must be sent as JSON."
+
+    post_data = request.get_json()
+    email = post_data.get("email")
+    password = post_data.get("password")
+
+    client = db.session.query(Client).filter(Client.email == email).first()
+
+    if email is None:
+        return jsonify("Invalid Credentials")
+
+    if password is None:
+        return jsonify("Invalid Credentials")
+
+    return jsonify("Successful Login")
+
+@app.route("/owner/authentication", methods=["POST"])
+def owner_authentication():
+    if request.content_type != "application/json":
+        return "Error: Data must be sent as JSON."
+
+    post_data = request.get_json()
+    email = post_data.get("email")
+    password = post_data.get("password")
+
+    owner = db.session.query(Owner).filter(Owner.email == email).first()
+
+    if email is None:
+        return jsonify("Invalid Credentials")
+
+    if password is None:
+        return jsonify("Invalid Credentials")
+
+    return jsonify("Successful Login")
+
 if __name__ == "__main__":
     app.run(debug=True)
