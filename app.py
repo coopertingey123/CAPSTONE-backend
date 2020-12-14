@@ -3,6 +3,7 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_marshmallow import Marshmallow
 from flask_cors import CORS
 from flask_heroku import Heroku
+from flask_bcrypt import Bcrypt
 
 app = Flask(__name__)
 
@@ -10,7 +11,7 @@ app.config["SQLALCHEMY_DATABASE_URI"] = "postgres://gzrkczxqihabxm:89fcdcec42ee2
 
 db = SQLAlchemy(app)
 ma = Marshmallow(app)
-# bcrypt if it is used
+bcrypt = Bcrypt(app)
 
 CORS(app)
 Heroku(app)
@@ -112,7 +113,9 @@ def create_client():
     if existingClient is not None:
         return jsonify("Client already exists")
 
-    record = Client(first_name, last_name, email, password, business_owner_id, address, phone_number, payment_method, special_requests)
+    pasword_hash = bcrypt.generate_password_hash(password).decode("utf-8")
+
+    record = Client(first_name, last_name, email, password_hash, business_owner_id, address, phone_number, payment_method, special_requests)
     db.session.add(record)
     db.session.commit()
 
@@ -142,7 +145,7 @@ def client_authentication():
     if email is None:
         return jsonify("Invalid Credentials")
 
-    if password is None:
+    if bcrypt.check_password_hash(client.password, password) != True:
         return jsonify("Invalid Credentials")
 
     return jsonify("Successful Login")
@@ -161,7 +164,7 @@ def owner_authentication():
     if email is None:
         return jsonify("Invalid Credentials")
 
-    if password is None:
+    if bcrypt.check_password_hash(client.password, password) != True:
         return jsonify("Invalid Credentials")
 
     return jsonify("Successful Login")
