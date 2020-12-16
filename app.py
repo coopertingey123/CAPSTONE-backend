@@ -45,27 +45,23 @@ class Client(db.Model):
     first_name = db.Column(db.String(20), unique=False, nullable=False)
     last_name = db.Column(db.String(20), unique=False, nullable=False)
     email = db.Column(db.String(40), unique=True, nullable=False)
-    password = db.Column(db.String(25), unique=False, nullable=False)
-    business_owner_id = db.Column(db.Integer, db.ForeignKey("owner.id"))
     address= db.Column(db.String(50), unique=False, nullable=False)
     phone_number= db.Column(db.String(20), unique=True, nullable=False)
-    payment_method= db.Column(db.String(50), unique=False, nullable=False)
-    special_requests= db.Column(db.String(200), unique=False, nullable=True)
+    day_of_week= db.Column(db.String(20), unique=False, nullable=False)
+    info_for_owner= db.Column(db.String(300), unique=False, nullable=True)
 
-    def __init__(self, first_name, last_name, email, password, business_owner_id, address, phone_number, payment_method, special_requests):
+    def __init__(self, first_name, last_name, email, address, phone_number, day_of_week, info_for_owner):
         self.first_name = first_name
         self.last_name = last_name
         self.email = email
-        self.password = password
-        self.business_owner_id = business_owner_id
         self.address = address
         self.phone_number = phone_number
-        self.payment_method = payment_method
-        self.special_requests = special_requests
+        self.day_of_week = day_of_week
+        self.info_for_owner = info_for_owner
 
 class ClientSchema(ma.Schema):
     class Meta:
-        fields = ("id", "first_name", "last_name", "email", "password", "business_owner_id", "address", "phone_number", "payment_method", "special_requests")
+        fields = ("id", "first_name", "last_name", "email", "address", "phone_number", "day_of_week", "info_for_owner")
 
 client_schema = ClientSchema()
 multiple_clients_schema = ClientSchema(many=True)
@@ -102,23 +98,19 @@ def create_client():
     first_name = post_data.get("first_name")
     last_name = post_data.get("last_name")
     email = post_data.get("email")
-    password = post_data.get("password")
-    business_owner_id = post_data.get("business_owner_id")
     address = post_data.get("address")
     phone_number = post_data.get("phone_number")
-    payment_method = post_data.get("payment_method")
-    special_requests = post_data.get("special_requests")
+    day_of_week = post_data.get("day_of_week")
+    info_for_owner = post_data.get("info_for_owner")
 
     existingClient = db.session.query(Client).filter(Client.email == email).first()
     if existingClient is not None:
         return jsonify("Client already exists")
 
-    pasword_hash = bcrypt.generate_password_hash(password).decode("utf-8")
-
-    record = Client(first_name, last_name, email, password_hash, business_owner_id, address, phone_number, payment_method, special_requests)
+    record = Client(first_name, last_name, email, address, phone_number, day_of_week, info_for_owner)
     db.session.add(record)
     db.session.commit()
-
+    
     return jsonify("Client added successfully")
 
 @app.route("/client/get", methods=["GET"])
@@ -145,7 +137,7 @@ def client_authentication():
     if email is None:
         return jsonify("Invalid Credentials")
 
-    if bcrypt.check_password_hash(client.password, password) != True:
+    if bcrypt.check_password_hash(Client.password, password) != True:
         return jsonify("Invalid Credentials")
 
     return jsonify("Successful Login")
