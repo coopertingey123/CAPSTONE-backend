@@ -49,8 +49,9 @@ class Client(db.Model):
     phone_number= db.Column(db.String(20), unique=True, nullable=False)
     day_of_week= db.Column(db.String(20), unique=False, nullable=False)
     info_for_owner= db.Column(db.String(300), unique=False, nullable=True)
+    owner_email= db.Column(db.String(40), unique=False, nullable=False)
 
-    def __init__(self, first_name, last_name, email, address, phone_number, day_of_week, info_for_owner):
+    def __init__(self, first_name, last_name, email, address, phone_number, day_of_week, info_for_owner, owner_email):
         self.first_name = first_name
         self.last_name = last_name
         self.email = email
@@ -58,10 +59,11 @@ class Client(db.Model):
         self.phone_number = phone_number
         self.day_of_week = day_of_week
         self.info_for_owner = info_for_owner
+        self.owner_email = owner_email
 
 class ClientSchema(ma.Schema):
     class Meta:
-        fields = ("id", "first_name", "last_name", "email", "address", "phone_number", "day_of_week", "info_for_owner")
+        fields = ("id", "first_name", "last_name", "email", "address", "phone_number", "day_of_week", "info_for_owner", "owner_email")
 
 client_schema = ClientSchema()
 multiple_clients_schema = ClientSchema(many=True)
@@ -83,7 +85,9 @@ def create_business_owner():
     if existingOwner is not None:
         return jsonify("Owner already exists")
 
-    record = Owner(email, password, first_name, last_name, phone_number)
+    password_hash = bcrypt.generate_password_hash(password).decode("utf-8")
+
+    record = Owner(email, password_hash, first_name, last_name, phone_number)
     db.session.add(record)
     db.session.commit()
 
@@ -102,12 +106,13 @@ def create_client():
     phone_number = post_data.get("phone_number")
     day_of_week = post_data.get("day_of_week")
     info_for_owner = post_data.get("info_for_owner")
+    owner_email = post_data.get("owner_email")
 
     existingClient = db.session.query(Client).filter(Client.email == email).first()
     if existingClient is not None:
         return jsonify("Client already exists")
 
-    record = Client(first_name, last_name, email, address, phone_number, day_of_week, info_for_owner)
+    record = Client(first_name, last_name, email, address, phone_number, day_of_week, info_for_owner, owner_email)
     db.session.add(record)
     db.session.commit()
     
@@ -115,32 +120,48 @@ def create_client():
 
 @app.route("/client/get", methods=["GET"])
 def get_all_clients():
+    all_clients = db.session.query(Client.id, Client.first_name, Client.last_name, Client.email, Client.address, Client.phone_number, Client.day_of_week, Client.info_for_owner, Client.owner_email).all()
+    return jsonify(multiple_clients_schema.dump(all_clients))
+
+@app.route("/client/names/get", methods=["GET"])
+def get_all_client_names():
+    all_client_names = db.session.query(Client.first_name, Client.last_name).all()
+
+    return jsonify(multiple_clients_schema.dump(all_client_names))
+
+@app.route("/client/get/marshmallow", methods=["GET"])
+def get_all_clients_marshmallow():
+    # all_clients = Client.query.all()
     all_clients = db.session.query(Client).all()
     return jsonify(multiple_clients_schema.dump(all_clients))
+
+
+
+@app.route("/client/get/marshmallow/<id>", methods=["GET"])
+def get_one_client_marshmallow(id):
+    # one_client = Book.query.get(id)
+    one_client = db.session.query(Client).filter(CLient.id == id).first()
+
+
+    return jsonify(book_schema.dump(one_book))
+
+
+
+@app.route("/client/get/my-clients/<owner_email>", methods=["GET"])
+def get_my_clients(owner_email):
+
+    my_clients = db.session.query(Client).filter(Client.owner_email == owner_email).all()
+
+    return jsonify(multiple_clients_schema.dump(my_clients))
+
+
+
 
 @app.route("/owners/get", methods=["GET"])
 def get_all_owners():
     all_owners = db.session.query(Owner).all()
     return jsonify(multiple_Owner_schema.dump(all_owners))
 
-@app.route("/client/authentication", methods=["POST"])
-def client_authentication():
-    if request.content_type != "application/json":
-        return "Error: Data must be sent as JSON."
-
-    post_data = request.get_json()
-    email = post_data.get("email")
-    password = post_data.get("password")
-
-    client = db.session.query(Client).filter(Client.email == email).first()
-
-    if email is None:
-        return jsonify("Invalid Credentials")
-
-    if bcrypt.check_password_hash(Client.password, password) != True:
-        return jsonify("Invalid Credentials")
-
-    return jsonify("Successful Login")
 
 @app.route("/owner/authentication", methods=["POST"])
 def owner_authentication():
@@ -156,10 +177,13 @@ def owner_authentication():
     if email is None:
         return jsonify("Invalid Credentials")
 
-    if bcrypt.check_password_hash(client.password, password) != True:
+    if bcrypt.check_password_hash(owner.password, password) != True:
         return jsonify("Invalid Credentials")
 
-    return jsonify("Successful Login")
+    return {
+        "status": "logged_in"
+    }
+
 
 if __name__ == "__main__":
     app.run(debug=True)
