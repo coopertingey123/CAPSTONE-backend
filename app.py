@@ -123,6 +123,23 @@ def get_all_clients():
     all_clients = db.session.query(Client.id, Client.first_name, Client.last_name, Client.email, Client.address, Client.phone_number, Client.day_of_week, Client.info_for_owner, Client.owner_email).all()
     return jsonify(multiple_clients_schema.dump(all_clients))
 
+@app.route("/client/delete/<email>", methods=["DELETE"])
+def delete_client(email):
+    one_client = db.session.query(Client).filter(Client.email == email).first()
+    db.session.delete(one_client)
+    db.session.commit()
+    return jsonify(f"Client with email {email} was deleted")
+
+
+@app.route("/book/delete/<title>", methods=["DELETE"])
+def delete_book_by_title(title):
+    record = db.session.query(Book).filter(Book.title == title).first()
+    db.session.delete(record)
+    db.session.commit()
+    return jsonify(f"Book with title {title} was successfully deleted")
+
+
+
 @app.route("/client/names/get", methods=["GET"])
 def get_all_client_names():
     all_client_names = db.session.query(Client.first_name, Client.last_name).all()
@@ -137,13 +154,6 @@ def get_all_clients_marshmallow():
 
 
 
-@app.route("/client/get/marshmallow/<id>", methods=["GET"])
-def get_one_client_marshmallow(id):
-    # one_client = Book.query.get(id)
-    one_client = db.session.query(Client).filter(CLient.id == id).first()
-
-
-    return jsonify(book_schema.dump(one_book))
 
 
 
