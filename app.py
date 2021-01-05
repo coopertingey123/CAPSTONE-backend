@@ -109,8 +109,10 @@ def create_client():
     owner_email = post_data.get("owner_email")
 
     existingClient = db.session.query(Client).filter(Client.email == email).first()
+    
     if existingClient is not None:
         return jsonify("Client already exists")
+    
 
     record = Client(first_name, last_name, email, address, phone_number, day_of_week, info_for_owner, owner_email)
     db.session.add(record)
@@ -130,31 +132,12 @@ def delete_client(email):
     db.session.commit()
     return jsonify(f"Client with email {email} was deleted")
 
-
-@app.route("/book/delete/<title>", methods=["DELETE"])
-def delete_book_by_title(title):
-    record = db.session.query(Book).filter(Book.title == title).first()
-    db.session.delete(record)
+@app.route("/business-owner/delete/<email>", methods=["DELETE"])
+def delete_owner(email):
+    one_owner = db.session.query(Owner).filter(Owner.email == email).first()
+    db.session.delete(one_owner)
     db.session.commit()
-    return jsonify(f"Book with title {title} was successfully deleted")
-
-
-
-@app.route("/client/names/get", methods=["GET"])
-def get_all_client_names():
-    all_client_names = db.session.query(Client.first_name, Client.last_name).all()
-
-    return jsonify(multiple_clients_schema.dump(all_client_names))
-
-@app.route("/client/get/marshmallow", methods=["GET"])
-def get_all_clients_marshmallow():
-    # all_clients = Client.query.all()
-    all_clients = db.session.query(Client).all()
-    return jsonify(multiple_clients_schema.dump(all_clients))
-
-
-
-
+    return jsonify(f"Owner with email {email} was deleted")
 
 
 @app.route("/client/get/my-clients/<owner_email>", methods=["GET"])
@@ -163,8 +146,6 @@ def get_my_clients(owner_email):
     my_clients = db.session.query(Client).filter(Client.owner_email == owner_email).all()
 
     return jsonify(multiple_clients_schema.dump(my_clients))
-
-
 
 
 @app.route("/owners/get", methods=["GET"])
